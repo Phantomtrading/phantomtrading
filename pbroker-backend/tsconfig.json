@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",               // Modern JS target matching Node 22
+    "module": "NodeNext",             // Native ESM support in Node
+    "moduleResolution": "nodenext",  // ESM-aware module resolution
+    "outDir": "dist",                 // Compiled output folder
+    "rootDir": "src",                 // Your source files folder
+    "strict": true,                  // Enable all strict checks
+    "esModuleInterop": true,          // CommonJS interop
+    "allowSyntheticDefaultImports": true,  // Allow default imports from modules with no default export
+    "skipLibCheck": true,             // Skip checking types of node_modules
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,        // Allow importing JSON files
+    "isolatedModules": true,           // Ensures each file can be transpiled independently (good for ts-node)
+    "sourceMap": true,                // Generate source maps for debugging
+    "noUnusedLocals": true,           // Detect unused locals
+    "noUnusedParameters": true,       // Detect unused parameters
+    "noImplicitReturns": true,        // Require return statements on all code paths
+    "noFallthroughCasesInSwitch": true,
+    "lib": ["ES2022"],                // No DOM libs in backend
+    "verbatimModuleSyntax": true      // Preserves import/export syntax as-is
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

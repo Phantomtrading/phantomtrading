@@ -1,0 +1,73 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - dev  # Trigger only on dev branch pushes
+
+env:
+  NODE_VERSION: '22.16.0'
+  DEPLOY_BRANCH: 'dev'  # Can be changed or overridden with secrets
+  BACKEND_DIR: pbroker-backend
+  FRONTEND_DIR: pbroker-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install backend dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run build
+
+      - name: Build backend
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm run build
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.PBROKER_VPS_PRIVATE_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{secrets.PBROKER_VPS_USER}}@${{secrets.PBROKER_VPS_HOST}} << 'EOF'
+            cd ${{ secrets.PBROKER_VPS_PATH }}
+            
+            # Pull latest code
+            git pull origin ${{ env.DEPLOY_BRANCH }}
+           
+            # Backend build & reload
+            cd ${{ env.BACKEND_DIR }}
+            npm ci
+
+            # Apply database migrations
+            npx prisma migrate deploy
+
+            # Re-generate the Prisma client with the latest schema
+            npx prisma generate
+            
+            npm run build
+            pm2 reload all
+
+            # Frontend build
+            cd ../${{ env.FRONTEND_DIR }}
+            npm ci
+            npm run build
+          EOF

@@ -1,0 +1,314 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                    Int                    @id @default(autoincrement())
+  email                 String                 @unique
+  emailVerified         Boolean                @default(false)
+  phoneNumber           String                 @unique
+  password              String
+  firstName             String
+  lastName              String
+  role                  Role                   @default(USER)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  demoMode              DemoMode               @default(NEUTRAL)
+  deposits              Deposit[]
+  tradeRequests         TradeRequest[]
+  receivedTransfers     Transfer[]             @relation("ReceivedTransfers")
+  sentTransfers         Transfer[]             @relation("SentTransfers")
+  verificationCodes     VerificationCode[]
+  withdrawals           Withdrawal[]
+  wallets               Wallet[]
+  arbitrageOrders       ArbitrageOrder[]
+  arbitrageTransactions ArbitrageTransaction[]
+}
+
+model VerificationCode {
+  id        Int              @id @default(autoincrement())
+  code      String
+  userId    Int
+  type      VerificationType @default(EMAIL_VERIFICATION)
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code])
+}
+
+model Cryptocurrency {
+  id             Int       @id @default(autoincrement())
+  name           String
+  symbol         String    @unique
+  tokenStandard  String
+  depositAddress String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  coingeckoId    String?   @unique
+  deposits       Deposit[]
+}
+
+model Deposit {
+  id                String            @id @default(cuid())
+  userId            Int
+  cryptocurrencyId  Int
+  amount            Decimal           @db.Decimal(30, 18)
+  proofOfDepositUrl String?
+  transactionHash   String?
+  status            TransactionStatus @default(PENDING)
+  adminNotes        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  cryptocurrency    Cryptocurrency    @relation(fields: [cryptocurrencyId], references: [id])
+  user              User              @relation(fields: [userId], references: [id])
+
+  proofs DepositProof[]
+
+  @@index([userId])
+  @@index([cryptocurrencyId])
+}
+
+model DepositProof {
+  id        String   @id @default(cuid())
+  depositId String
+  filename  String
+  createdAt DateTime @default(now())
+
+  deposit Deposit @relation(fields: [depositId], references: [id])
+}
+
+model Withdrawal {
+  id                String            @id @default(cuid())
+  userId            Int
+  amount            Decimal           @db.Decimal(30, 18)
+  fee               Decimal           @default(0.1) @db.Decimal(7, 5)
+  transactionHash   String?
+  status            TransactionStatus @default(PENDING)
+  adminNotes        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  withdrawalAddress String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Transfer {
+  id          String   @id @default(cuid())
+  senderId    Int
+  recipientId Int
+  amount      Decimal  @db.Decimal(30, 18)
+  createdAt   DateTime @default(now())
+  recipient   User     @relation("ReceivedTransfers", fields: [recipientId], references: [id])
+  sender      User     @relation("SentTransfers", fields: [senderId], references: [id])
+
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+model TradingPair {
+  id                              Int           @id @default(autoincrement())
+  pairName                        String        @unique
+  baseCurrency                    String
+  quoteCurrency                   String
+  defaultTransactionFeePercentage Decimal       @default(0.005) @db.Decimal(7, 5)
+  tradeOptions                    TradeOption[]
+  isActive                        Boolean       @default(true)
+  createdAt                       DateTime      @default(now())
+  updatedAt                       DateTime      @updatedAt
+
+  @@index([isActive])
+}
+
+model TradeOption {
+  id               Int      @id @default(autoincrement())
+  tradingPairId    Int
+  durationSeconds  Int
+  profitPercentage Decimal  @db.Decimal(7, 5)
+  minAmountQuote   Decimal  @db.Decimal(30, 18)
+  maxAmountQuote   Decimal  @db.Decimal(30, 18)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tradingPair TradingPair @relation(fields: [tradingPairId], references: [id], onDelete: Cascade)
+}
+
+model TradeRequest {
+  id                         String        @unique @default(cuid())
+  userId                     Int
+  tradingPair                String
+  baseCurrency               String
+  quoteCurrency              String
+  tradeType                  TradeType
+  tradingAmountQuote         Decimal       @db.Decimal(30, 18)
+  tradingAmountBase          Decimal       @db.Decimal(30, 18)
+  executionPrice             Decimal       @db.Decimal(30, 18)
+  tradeExpirationTimeSeconds Int
+  potentialProfitPercentage  Decimal       @db.Decimal(7, 5)
+  expectedProfitQuote        Decimal       @db.Decimal(30, 18)
+  transactionFeePercentage   Decimal       @db.Decimal(7, 5)
+  transactionFeeAmountQuote  Decimal       @db.Decimal(30, 18)
+  winLoseStatus              WinLoseStatus @default(NA)
+  tradeStatus                TradeStatus   @default(PENDING)
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+  user                       User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([tradingPair])
+  @@index([tradeStatus])
+  @@index([winLoseStatus])
+}
+
+enum VerificationType {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+  FORGOT_PASSWORD
+  EMAIL_CHANGE
+  TWO_FA
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  PENDING
+  RESOLVED
+  CANCELLED
+}
+
+enum WinLoseStatus {
+  NA
+  WIN
+  LOSE
+}
+
+enum DemoMode {
+  NEUTRAL
+  WIN
+  LOSE
+}
+
+model Wallet {
+  id        String     @id @default(cuid())
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  type      WalletType
+  balance   Decimal    @default(0) @db.Decimal(30, 18)
+  locked    Decimal    @default(0) @db.Decimal(30, 18)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+enum WalletType {
+  TRADING
+  ARBITRAGE
+}
+
+model ArbitrageProduct {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  name          String
+  description   String
+  durationDays  Int
+  isActive      Boolean  @default(true)
+  dailyRoiRate  Decimal  @db.Decimal(7, 5)
+  minInvestment Decimal  @db.Decimal(30, 18)
+  maxInvestment Decimal  @db.Decimal(30, 18)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders ArbitrageOrder[]
+}
+
+model ArbitrageOrder {
+  id             String               @id @default(cuid())
+  userId         Int
+  user           User                 @relation(fields: [userId], references: [id])
+  productId      String
+  product        ArbitrageProduct     @relation(fields: [productId], references: [id])
+  amount         Decimal              @db.Decimal(30, 18)
+  dailyRoiRate   Decimal              @db.Decimal(7, 5)
+  durationDays   Int
+  startDate      DateTime
+  endDate        DateTime
+  status         ArbitrageOrderStatus @default(ACTIVE)
+  earnedInterest Decimal              @db.Decimal(30, 18)
+  createdAt      DateTime             @default(now())
+
+  transactions ArbitrageTransaction[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([userId, status])
+}
+
+enum ArbitrageOrderStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model ArbitrageTransaction {
+  id              String                     @id @default(cuid())
+  orderId         String
+  order           ArbitrageOrder             @relation(fields: [orderId], references: [id])
+  userId          Int
+  user            User                       @relation(fields: [userId], references: [id])
+  amount          Decimal                    @db.Decimal(30, 18)
+  type            ArbitrageTransactionType
+  transactionDate DateTime
+  status          ArbitrageTransactionStatus
+  createdAt       DateTime                   @default(now())
+
+  @@index([orderId])
+  @@index([userId])
+}
+
+enum ArbitrageTransactionType {
+  INTEREST
+  PRINCIPAL_RETURN
+}
+
+enum ArbitrageTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       Json
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

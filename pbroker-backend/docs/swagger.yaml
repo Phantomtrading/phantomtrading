@@ -1,0 +1,5324 @@
+openapi: 3.1.0
+info:
+  title: PBroker API
+  version: 1.0.0
+  description: API documentation for the PBroker REST API backend service.
+
+servers:
+  - url: http://localhost:4000/api
+    description: Local development server
+  - url: https://pbroker-backend.onrender.com/api
+    description: Production server (Render)
+  - url: https://pbroker-backend-qber.onrender.com/api  
+    
+security:
+  - bearerAuth: []
+tags:
+  - name: System
+    description: System Health Check 
+  - name: Auth
+    description: Authentication related operations
+  - name: User
+    description: User management operations like retrieve, update, promote, and count.    
+  - name: Cryptocurrency
+    description: Cryptocurency related operations
+  - name: Market Data
+    description: Fetch real-time price and market info for system cryptocurrencies.  
+  - name: Deposit
+    description: Manage deposit requests: create, update status, retrieve, with admin approval, rejection notes, and balance updates.
+  - name: Withdrawals
+    description: Handle user withdrawal requests and admin actions.   
+  - name: Transfers
+    description: Manage and retrieve user money transfers including creation, listing, and detail retrieval     
+  - name: TradingPairSetting
+    description: Admin-only endpoints for managing trading pair configurations including limits, fees, expiration options, and availability.
+  - name: TradeOptions
+    description: Endpoints for managing trade options    
+  - name: Trade
+    description: Endpoints for creating, resolving, and retrieving trade requests made by users. Includes admin resolution and user-side actions.
+  - name: Wallets
+    description: Wallet management endpoints  
+  - name: Arbitrage Products
+    description: Arbitrage Products management endpoints  
+  - name: Arbitrage Orders
+    description: Arbitrage Orders management endpoints     
+  - name: Arbitrage Transactions
+    description: Arbitrage Transactions management endpoints        
+  - name: Setting
+    description: App Settings management endpoints      
+paths:
+  /health:
+    get:
+      security: []  # No auth required here
+      summary: Health check
+      description: Returns the status of the API server
+      tags:
+        - System
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  code:
+                    type: string
+                    example: HEALTHY
+                  message:
+                    type: string
+                    example: server is live
+                  data:
+                    type: object
+                    properties:
+                      timestamp:
+                        type: string
+                        format: date-time
+                        example: "2025-06-11T08:40:16.561Z"
+        '503':
+          description: Server is unhealthy or partially down
+
+  /auth/signup:
+    post:
+      security: []  # No auth required here
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user account with the provided credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthSignUpRequest"
+            examples:
+             validSignUpRequest:
+               $ref: "#/components/examples/AuthSignUpRequestExample"  
+      responses:
+        "201":
+          $ref: "#/components/responses/AuthSignUpResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "409":
+          $ref: "#/components/responses/ConflictResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"   
+  /auth/signin:
+    post:
+      security: []  # No auth required here
+      tags:
+        - Auth
+      summary: Sign in a user
+      description: Authenticates a user using email and password, and returns access and refresh tokens with user info.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthSignInRequest"
+            examples:
+              validRequest:
+                $ref: "#/components/examples/AuthSignInRequestExample"  
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthSignInResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse" 
+        "403":
+          $ref: "#/components/responses/UnverifiedEmailError"   
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /auth/verify-email:
+    post:
+      security: []  # No auth required here 
+      tags:
+        - Auth
+      summary: Verify User Email
+      description: Verify User Email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEMailRequest"
+            examples:
+              validRequest:
+                $ref: "#/components/examples/EmailVerificationRequestExample"  
+      responses:
+        "200":
+          $ref: "#/components/responses/EmailVerificationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "404":
+          $ref: "#/components/responses/UserNotFoundResponse"
+        "410":
+          $ref: "#/components/responses/OtpExpiredOrMovedError"  
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /auth/resend-email-verification:
+    post:
+      security: []  # No auth required here 
+      tags:
+        - Auth
+      summary: Resend Email Verification Code
+      description: Resend Email Verification Code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest" 
+      responses:
+        "200":
+          $ref: "#/components/responses/EmailVerificationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "404":
+          $ref: "#/components/responses/UserNotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /auth/forgot-password:
+    post:
+      security: []  # No auth required here
+      tags:
+        - Auth
+      summary: Forgot Password
+      description: User Forgots Password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+            examples:
+              validRequest:
+                $ref: "#/components/examples/ForgotPasswordRequestExample"  
+      responses:
+        "200":
+          $ref: "#/components/responses/ForgotPasswordResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "403":
+          $ref: "#/components/responses/UnverifiedEmailError"   
+        "404":
+          $ref: "#/components/responses/UserNotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /auth/refresh-token:
+    post:
+      security: []  # No auth required here
+      tags:
+        - Auth
+      summary: Refresh access token using a valid refresh token cookie
+      operationId: refreshToken
+      description: |
+        Refreshes the user's access token using a valid refresh token. 
+        The refresh token must be present in the request cookies.
+      responses:
+        "200":
+          $ref: "#/components/responses/AuthRefreshTokenResponse"
+        "401":
+          $ref: "#/components/responses/RefreshTokenMissingResponse"
+        "403":
+          $ref: "#/components/responses/InvalidRefreshTokenResponse"
+        "404":
+          $ref: "#/components/responses/UserNotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"        
+  /auth/reset-password:
+    patch:
+      security: []  # No auth required here
+      tags:
+        - Auth
+      summary: Reset user password using a valid token
+      description: Resets the password using a valid reset token and new password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+            examples:
+              validRequest:
+                $ref: "#/components/examples/ResetPasswordRequestExample"
+      responses:
+        '200':
+          $ref: '#/components/responses/ResetPasswordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '404':
+          $ref: '#/components/responses/UserNotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse' 
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'              
+  
+  /users:
+    get:
+      summary: Get all users (Admin only)
+      tags: [User]
+      responses:
+        '200':
+          $ref: '#/components/responses/UserListSuccess'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /users/count:
+    get:
+      summary: Get user count (Admin only)
+      tags: [User]
+      responses:
+        '200':
+          $ref: '#/components/responses/UserCountSuccess'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"   
+  /users/{id}:
+    get:
+      summary: Get user by ID (Admin + user himself)
+      tags: [User]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/UserSuccess'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"   
+    patch:
+      summary: Update user info (Admin + user himself)
+      description: >
+        Allows a user to update their own profile or an admin to update another user's data.
+        - Regular users can update: firstName, lastName, email, phoneNumber.
+        - Admins can update any user's fields including role and demoMode.
+      tags: [User]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            examples:
+              userSelfUpdate:
+                summary: User updating their own info
+                value:
+                  firstName: Alemu
+                  lastName: Bekele
+                  email: alemu.bekele@example.com
+                  phoneNumber: "+251912345678"
+              adminPromotesUser:
+                summary: Admin promoting a user to ADMIN
+                value:
+                  role: ADMIN
+              adminSetsDemoMode:
+                summary: Admin sets user's demoMode to WIN
+                value:
+                  demoMode: WIN  
+              editUserBalance:
+                summary: Admin edits user's balance
+                value:
+                  balance: 2000   
+      responses:
+        '200':
+          $ref: '#/components/responses/UserUpdateSuccess'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse" 
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"     
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"   
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /users/change-password:
+    patch:
+      summary: Change user password
+      description: any user regardless of role can update their password
+      tags: [User]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/PasswordChangeSuccess'
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse" 
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"     
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /cryptocurrencies:
+    post:
+      summary: Create a new cryptocurrency (Admin only)
+      tags: [Cryptocurrency]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CryptocurrencyRequestData'  
+            examples:
+              validCryptocurencyRequest:
+                $ref: "#/components/examples/CreateCryptocurencyRequestExample"
+      responses:
+        "200":
+          $ref: "#/components/responses/CreateCryptoCurrencyResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"  
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"              
+    get:
+      summary: Get all cryptocurrencies
+      tags: [Cryptocurrency]
+      security: []
+      responses:
+        '200':
+          $ref: "#/components/responses/CryptoCurrencyListResponse" 
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"              
+  /cryptocurrencies/{id}:
+    get:
+      summary: Get cryptocurrency by ID
+      tags: [Cryptocurrency]
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the cryptocurrency to retrieve
+      responses:
+        "200":
+          description: Successful response with cryptocurrency data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptocurencyFullResponse"
+              examples:
+                GetCryptocurrencyByIdExample:
+                  summary: Example of retrieved cryptocurrency
+                  value:
+                    status: "success"
+                    code: "CRYPTO_RETRIEVED"
+                    message: "cryptocurrency retrieved successfully"
+                    data:
+                      id: 12345
+                      name: Bitcoin
+                      symbol: BTC
+                      tokenStandard: Native
+                      depositAddress: jhagfjhgfjsf17183687383dgjdhd
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    patch:
+      summary: Update cryptocurrency by ID (Admin only)
+      tags: [Cryptocurrency]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the cryptocurrency to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CryptocurrencyRequestData"
+            examples:
+              UpdateCryptocurrencyRequestExample:
+                $ref: "#/components/examples/CreateCryptocurencyRequestExample"
+      responses:
+        "200":
+          description: Successful update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CryptocurencyFullResponse"
+              examples:
+                UpdateCryptocurrencyResponseExample:
+                  $ref: "#/components/examples/CreateCryptocurencyResponseExample"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"  
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse" 
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    delete:
+      summary: Delete cryptocurrency by ID (Admin only)
+      tags: [Cryptocurrency]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the cryptocurrency to delete
+      responses:
+        "204":
+          description: no content
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /market-data:
+    get:
+      summary: Get market data for all system cryptocurrencies
+      description: Fetches paginated market data for system cryptocurrencies that have a CoinGecko ID. By default, it returns the first 15 coins.
+      tags: [Market Data]
+      security: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number of results to fetch
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          required: false
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 100
+      
+      responses:
+        "200":
+          description: List of market data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/MarketData"
+                      meta:
+                        type: object
+                        properties:
+                          pagination:
+                            $ref: "#/components/schemas/PaginationMeta"
+                             
+              example:
+                status: success
+                code: FETCHED
+                message: success
+                data:
+                  - id: 1
+                    name: Bitcoin
+                    symbol: BTC
+                    logoUrl: https://coin-images.coingecko.com/coins/images/1/large/bitcoin.png
+                    price: 67000.23
+                    source: binance
+                    change24h: 1.2
+                  - id: 2
+                    name: Ethereum
+                    symbol: ETH
+                    logoUrl: https://coin-images.coingecko.com/coins/images/279/large/ethereum.png
+                    price: 3200.55
+                    source: binance
+                    change24h: -0.4
+                meta:
+                  pagination:
+                    total: 15
+                    page: 1
+                    limit: 15
+                    totalPages: 1
+                        
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+        "499":
+          $ref: "#/components/responses/ExternalServerError"
+  /market-data/{id}:
+    get:
+      summary: Get market data for a specific cryptocurrency
+      tags: [Market Data]
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: System cryptocurrency ID
+      responses:
+        "200":
+          description: Market data for specific crypto
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MarketData"
+              example:
+                status: success
+                code: FETCHED
+                message: success
+                data:
+                  id: 3
+                  name: Polkadot
+                  symbol: DOT
+                  logoUrl: https://coin-images.coingecko.com/coins/images/12171/large/polkadot.png
+                  price: 4.18
+                  source: binance
+                  change24h: 3.59
+        "404":
+          description: Cryptocurrency not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseErrorResponse"
+              example:
+                status: error
+                code: NOT_FOUND
+                message: Cryptocurrency not found
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+        "499":
+          $ref: "#/components/responses/ExternalServerError"
+  /deposits:
+    post:
+      tags:
+        - Deposit
+      summary: Upload deposit with proof files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                cryptocurrencyId:
+                  type: integer
+                  example: 1
+                amount:
+                  type: number
+                  format: float
+                  example: 250.5
+                transactionHash:
+                  type: string
+                  example: 0xabc123...
+                proofs:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              required:
+                - cryptocurrencyId
+                - amount
+                - proofs
+      responses:
+        "201":
+          $ref: "#/components/responses/DepositCreateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"  
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    get:
+      tags:
+        - Deposit
+      summary: Get all deposits (Admin only)
+      description: Retrieve a list of all deposits in the system
+      responses:
+        "200":
+          $ref: "#/components/responses/DepositListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /deposits/count:
+    get:
+      tags:
+        - Deposit
+      summary: Get total number of deposits (Admin only)
+      description: Returns the total number of deposits in the system
+      responses:
+        "200":
+          description: Total count of deposits
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          totalCount:
+                            type: integer
+                        required:
+                          - totalCount
+                    required:
+                      - data
+              examples:
+                successExample:
+                  summary: Example of a successful count response
+                  value:
+                    status: "success"
+                    code: "DEPOSIT_COUNT_FETCHED"
+                    message: "Total deposits retrieved successfully"
+                    data:
+                      totalCount: 1342
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /deposits/{id}:
+    get:
+      tags:
+        - Deposit
+      summary: Get a deposit by ID
+      description: Retrieve a deposit by its ID. Access is restricted to admin users or the user who owns the deposit.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/DepositGetResponse"
+        "$401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"          
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /deposits/user/{userId}:
+    get:
+      tags:
+        - Deposit
+      summary: Get deposits by user ID
+      description: Retrieve all deposits for a specific user. Access is restricted to admin users or the user who owns the deposits (i.e., the userId in the path).
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/DepositListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"  
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /deposits/user/{userId}/total-amount:
+    get:
+      tags:
+        - Deposit
+      summary: Get total approved deposit amount by user ID
+      description: Retrieve the total approved deposit amount for a specific user. Access is restricted to admin users or the user who owns the deposit amount (i.e., the userId in the path).
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Total approved amount for the user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      totalAmount:
+                        type: number
+                required: [status, code, message, data]
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"  
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /deposits/{id}/status:
+    patch:
+      tags:
+        - Deposit
+      summary: Update the status of a deposit by ID (Admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                adminNotes:
+                  type: string  
+              required: [status]
+            examples:
+              approved:
+               summary: Deposit Approved successfully
+               value:
+                status: APPROVED
+                adminNotes: deposited approved successfully
+              Rejected:
+               summary: Deposit Request Rejected
+               value:
+                status: REJECTED
+                adminNotes: Provided Proof Document Not Valid
+      responses:
+        "200":
+          $ref: "#/components/responses/DepositUpdateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"  
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"  
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /deposits/{id}/proofs:
+    get:
+      summary: List all proof files for a deposit
+      tags:
+        - Deposit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Deposit ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Array of deposit proof filenames
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Deposit not found
+    post:
+      summary: Add new proof files to a deposit
+      tags:
+        - Deposit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Deposit ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                proofs:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+              required:
+                - proofs
+      responses:
+        '201':
+          description: Proof files uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadedFiles:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Validation error or too many files
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Deposit not found
+  /deposits/{id}/proofs/{fileName}:
+    get:
+      summary: Download a specific deposit proof file
+      tags:
+        - Deposit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Deposit ID
+          required: true
+          schema:
+            type: string
+        - name: fileName
+          in: path
+          description: File name of the proof
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Deposit or proof file not found
+    delete:
+      summary: Delete a specific deposit proof file
+      tags:
+        - Deposit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Deposit ID
+          required: true
+          schema:
+            type: string
+        - name: fileName
+          in: path
+          description: File name of the proof to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Proof file deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Deposit or proof file not found
+  /withdrawals:
+    post:
+      tags:
+        - Withdrawals
+      summary: Create a new withdrawal request
+      description: >
+        Creates a withdrawal request for the authenticated user.
+        The status is set to `PENDING` until reviewed by an admin.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWithdrawalInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreateWithdrawalSuccessResponse'
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+    get:
+      tags:
+        - Withdrawals
+      summary: Get all withdrawal requests (Admin only)
+      description: Admin-only endpoint to retrieve all user withdrawal requests.
+      responses:
+        '200':
+          $ref: "#/components/responses/WithdrawalsListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"              
+  /withdrawals/{id}:
+    get:
+      tags:
+        - Withdrawals
+      summary: Get a single withdrawal by ID
+      description: >
+        Retrieve a specific withdrawal by its unique ID.
+        Admins can access any withdrawal.
+        Users can only access their own withdrawal records.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Withdrawal ID
+      responses:
+        '200':
+          $ref: '#/components/responses/WithdrawalByIdSuccessResponse'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+    patch: 
+      tags:
+        - Withdrawals
+      summary: Approve Or Reject Withdrawal Request only ADMIN
+      description: >
+        Allows an admin to approve or reject a pending withdrawal request.
+        If a withdrawal is 'REJECTED', the originally debited amount (initial amount + fee)
+        should be credited back to the user's account.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalStatusUpdatePayload'
+            examples:
+              approve:
+                summary: Admin Approving Withdrawal Request
+                value:
+                  status: APPROVED
+                  transactionHash: fjhdfdgjfhdfgjhdgfjhdgfjdgffj
+                  adminNotes: already deposited to provided wallet address
+              reject:
+                summary: Admin Rejecting Withdrawal Request
+                value:
+                  status: REJECTED
+                  adminNotes: Request seems suspecious  
+                 
+      responses:
+        '201':
+          $ref: '#/components/responses/CreateWithdrawalSuccessResponse'
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"    
+  /withdrawals/user/{userId}:
+    get:
+      tags:
+        - Withdrawals
+      summary: Get withdrawals for a specific user
+      description: >
+        Retrieve all withdrawal requests for a specific user.
+        Only accessible by the user themself or an admin.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the user whose withdrawals are being retrieved
+      responses:
+        '200':
+          $ref: '#/components/responses/UserWithdrawalsListResponse'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+
+  /transfers:
+    post:
+      summary: Create a new transfer
+      tags:
+        - Transfers
+      description: |
+        Create a new transfer from the authenticated user to another user.
+        Only authenticated users can initiate transfers.
+        Recipient is identified by email or E.164 formatted phone number.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferInput'
+            examples:
+              ValidTransfer:
+                value:
+                  amount: 600
+                  recipientIdentifier: "user@pbroker.com"
+      responses:
+        '200':
+          $ref: '#/components/responses/BasicTransferGetResponse'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    get:
+      summary: Get paginated list of transfers
+      tags:
+        - Transfers
+      security:
+        - bearerAuth: []
+      description: |
+        **Admin Only**: This endpoint requires a valid JWT token with `role: ADMIN`.
+        Returns a paginated list of all user-to-user transfers.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          required: false
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          required: false
+          description: Number of items per page
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedTransferResponse'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /transfers/{id}:
+    get:
+      summary: Get a specific transfer by ID
+      tags:
+        - Transfers
+      description: |
+        Fetch details of a single transfer by its unique ID.
+        Only the sender, recipient, or an ADMIN can access this transfer.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The ID of the transfer to retrieve
+      responses:
+        '200':
+          $ref: '#/components/responses/BasicTransferGetResponse'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"          
+  /transfers/user/{id}:
+    get:
+      summary: Get user transfers (sent, received, or all)
+      tags:
+        - Transfers
+      description: |
+        Fetch transfers involving a specific user. Accessible only by:
+        - The authenticated user matching the `id`, or
+        - An ADMIN user.
+
+        Supports filtering by type (`sent`, `received`, or `all`) and pagination.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID of the user to fetch transfers for
+        - in: query
+          name: type
+          required: false
+          schema:
+            type: string
+            enum: [sent, received, all]
+            default: all
+          description: |
+            Transfer direction filter:
+            - `sent`: Transfers where the user is the sender
+            - `received`: Transfers where the user is the recipient
+            - `all`: All transfers
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        '200':
+          $ref: '#/components/responses/PaginatedTransferResponse'
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /trading-pair-settings:
+    post:
+      tags:
+        - TradingPairSetting
+      summary: Create a new trading pair setting ADMIN only
+      description: Only accessible by admins. Creates configuration settings for a specific trading pair.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTradingPairRequest"
+      responses:
+        '201':
+          $ref: "#/components/responses/CreateTradingPairResponse201"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"  
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    get:
+      tags:
+        - TradingPairSetting
+      summary: Get all trading pair settings
+      description: Returns a list of all trading pair settings. Accessible to all authenticated users.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: "#/components/responses/GetTradingPairResponseList200"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"          
+  /trading-pair-settings/{id}:
+    get:
+      tags:
+        - TradingPairSetting
+      summary: Get trading pair setting by ID
+      description: Returns a single trading pair setting by ID. Requires authentication.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: "#/components/responses/GetTradingPairByIdResponse200"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    patch:
+      tags:
+        - TradingPairSetting
+      summary: Update trading pair setting by ID, ADMIN only
+      description: Only accessible by admins. Updates the configuration of a specific trading pair.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/UpdateTradingPairWithOptionsInput'
+                - $ref: '#/components/schemas/UpdateTradingPairWithoutOptionsInput'
+              discriminator:
+                propertyName: tradeOptions
+            examples:
+              WithTradeOptions:
+                summary: Full update including tradeOptions
+                value:
+                  pairName: ETHUSDT
+                  baseCurrency: ETH
+                  quoteCurrency: USDT
+                  defaultTransactionFeePercentage: 0.005
+                  isActive: true
+                  tradeOptions:
+                    - durationSeconds: 60
+                      profitPercentage: 0.15
+                      minAmountQuote: 50
+                      maxAmountQuote: 5000
+                    - durationSeconds: 120
+                      profitPercentage: 0.25
+                      minAmountQuote: 100
+                      maxAmountQuote: 10000
+              WithoutTradeOptions:
+                summary: Metadata update only (no tradeOptions)
+                value:
+                  pairName: ETHUSDT
+                  baseCurrency: ETH
+                  quoteCurrency: USDT
+                  defaultTransactionFeePercentage: 0.005
+                  isActive: false
+      responses:
+        '200':
+          $ref: "#/components/responses/UpdateTradingPairResponse200"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"  
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"  
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    delete:
+      tags:
+        - TradingPairSetting
+      summary: Delete trading pair setting by ID, ADMIN only
+      description: Deletes a specific trading pair setting.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: no content
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"  
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /trade-options:
+    post:
+      tags: [TradeOptions]
+      summary: Create trade option
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTradeOptionInput'
+      responses:
+        '201':
+          description: Trade option created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOptionResponse'
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"  
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"        
+    get:
+      tags: [TradeOptions]
+      summary: Get trade options by tradingPairId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: tradingPairId
+          schema:
+            type: integer
+          required: true
+          description: ID of the trading pair
+      responses:
+        '200':
+          description: List of trade options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOptionListResponse'
+          
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"        
+  /trade-options/{id}:
+    get:
+      tags: [TradeOptions]
+      summary: Get trade option by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trade option found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOptionResponse'
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"         
+    patch:
+      tags: [TradeOptions]
+      summary: Update trade option by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTradeOptionInput'
+      responses:
+        '200':
+          description: Trade option updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOptionResponse'
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"        
+    delete:
+      tags: [TradeOptions]
+      summary: Delete trade option by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Trade option deleted successfully 
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"          
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+  /trades:
+    post:
+      tags:
+        - Trade
+      summary: Create a new trade request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTradeRequestInput"
+      responses:
+        '201':
+          $ref: "#/components/responses/TradeRequestCreatedResponse"
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '422':
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    get:
+      tags:
+        - Trade
+      summary: Get all trade requests (ADMIN only)
+      responses:
+        '200':
+          $ref: "#/components/responses/TradeRequestListResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /trades/user/{userId}:
+    get:
+      tags:
+        - Trade
+      summary: Retrieve trade requests by user ID (admin or account owner only)
+      description: Returns all trade requests created by the specified user. Only accessible by admins or the user themselves.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: "#/components/responses/TradeRequestListResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /trades/{id}:
+    get:
+      tags:
+        - Trade
+      summary: Retrieve a trade request by ID (admin or resource owner only)
+      description: Fetch a single trade request by its ID. Access restricted to admins or the user who owns the trade.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: "#/components/responses/TradeRequestFoundResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    patch:
+      tags:
+        - Trade
+      summary: Update a trade request by ID (admin or owner)
+      description: Allows admins to resolve the trade and set win/lose status. Resource owners can only cancel their own trade requests.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTradeRequestInput"
+            examples:
+              resolvedWin: 
+                summary: Make Trade Request WIN
+                value:
+                  tradeStatus: RESOLVED
+                  winLoseStatus: WIN
+              resolvedLOSE: 
+                summary: Make Trade Request LOSE
+                value:
+                  tradeStatus: RESOLVED
+                  winLoseStatus: LOSE  
+              cancelled: 
+                summary: cancel Trade Request
+                value:
+                   tradeStatus: CANCELLED
+      responses:
+        '200':
+          $ref: "#/components/responses/TradeUpdatedResponse"
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  
+  /arbitrage/products:
+    post:
+      tags:
+        - Arbitrage Products
+      summary: Create Arbitrage Product
+      description: Create a new arbitrage product for investment.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArbitrageProductCreateRequest'
+            examples:
+              createProduct:
+                $ref: '#/components/examples/CreateArbitrageProductRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ArbitrageProductCreated'
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"          
+        '422':
+          $ref: "#/components/responses/UnprocessableEntityResponse"          
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    get:
+      tags:
+        - Arbitrage Products
+      summary: Get all arbitrage products
+      description: Fetches a paginated list of arbitrage products.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        '200':
+          $ref: '#/components/responses/ArbitrageProductsPaginated'
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /arbitrage/products/{id}:
+    get:
+      tags:
+        - Arbitrage Products
+      summary: Get Arbitrage Product by ID
+      description: Retrieve details of a specific arbitrage product by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Arbitrage Product ID
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: "#/components/responses/TradeRequestFoundResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    patch:
+      tags:
+        - Arbitrage Products
+      summary: Update Arbitrage Product
+      description: Partially update an arbitrage product. Only the provided fields will be updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Arbitrage Product ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArbitrageProductUpdateRequest'
+            examples:
+              updateProduct:
+                $ref: '#/components/examples/UpdateArbitrageProductRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ArbitrageProductUpdated'
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"    
+    delete:
+      summary: Delete an arbitrage product
+      description: Permanently removes an arbitrage product by ID
+      tags:
+        - Arbitrage Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the product to delete
+      responses:
+        "204":
+          description: no content
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse" 
+
+  /arbitrage/orders:
+    post:
+      summary: Create a new arbitrage order
+      tags:
+        - Arbitrage Orders
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArbitrageOrderCreateRequest"
+            examples:
+              example1:
+                summary: Create order
+                value:
+                  productId: "cmevgp4870000fewspae23wky"
+                  amount: "280"
+      responses:
+        "201":
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArbitrageOrderResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    get:
+      summary: Get all arbitrage orders (Admin)
+      tags:
+        - Arbitrage Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/ArbitrageOrderStatus"
+        - in: query
+          name: userId
+          schema:
+            type: integer
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated list of orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedArbitrageOrderResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /arbitrage/orders/user:
+    get:
+      summary: Get user orders(authenticated user)
+      tags:
+        - Arbitrage Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/ArbitrageOrderStatus"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated list of user orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedArbitrageOrderResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /arbitrage/orders/{id}:
+    get:
+      summary: Get order by ID
+      tags:
+        - Arbitrage Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: cuid
+      responses:
+        "200":
+          description: Order fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArbitrageOrderResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"  
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    patch:
+      summary: Cancel order
+      description: Cancel an active order
+      tags:
+        - Arbitrage Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: cuid
+      responses:
+        "200":
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArbitrageOrderResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"  
+    
+  /arbitrage/transactions:
+    get:
+      summary: Get all arbitrage transactions (paginated + optional filters)
+      tags:
+        - Arbitrage Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+          description: Optional filter by user ID
+        - in: query
+          name: orderId
+          schema:
+            type: string
+            format: cuid
+          description: Optional filter by order ID
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/ArbitrageTransactionStatus"
+          description: Optional filter by transaction status
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated transactions fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedArbitrageTransactionResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /arbitrage/transactions/{id}:
+    get:
+      summary: Get a single arbitrage transaction by ID
+      tags:
+        - Arbitrage Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: cuid
+      responses:
+        "200":
+          description: Transaction fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArbitrageTransactionResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /arbitrage/transactions/earned/total:
+    get:
+      summary: Get total earned by user
+      description: Returns total earned interest and principal return for a user, optionally filtered by orderId.
+      tags:
+        - Arbitrage Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+          description: Optional. User ID to filter by
+        - in: query
+          name: orderId
+          schema:
+            type: string
+            format: cuid
+          description: Optional. Specific order ID to filter by
+      responses:
+        "200":
+          description: Total earned fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TotalEarnedResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"  
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /wallets/self-transfer:
+    post:
+      tags:
+        - Wallets
+      summary: Self Transfer
+      description: Transfer funds between Trading and Arbitrage wallets for the authenticated user.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalletSelfTransferRequest'
+            examples:
+              tradingToArbitrage:
+                $ref: '#/components/examples/TradingToArbitrage'
+              arbitrageToTrading:
+                $ref: '#/components/examples/ArbitrageToTrading'
+      responses:
+        '200':
+          $ref: '#/components/responses/SelfTransferSuccessResponse'
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"  
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /wallets/balances:
+    get:
+      tags:
+        - Wallets
+      summary: Get Wallet Balances
+      description: Retrieve wallet balances for the authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/WalletBalancesSuccessResponse'
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /wallets/{id}/balance:
+    patch:
+      tags:
+        - Wallets
+      summary: Update Wallet Balance (Admin Only)
+      description: |
+        Allows an administrator to update the balance of a specific wallet.
+        This endpoint is protected and only accessible to users with the 'ADMIN' role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the wallet to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalletUpdateBalanceRequest'
+            examples:
+              example:
+                value:
+                  balance: "21000"
+      responses:
+        '200':
+          $ref: '#/components/responses/UpdateWalletBalanceSuccessResponse'
+        '400':
+          $ref: "#/components/responses/BadRequestResponse"
+        '401':
+          $ref: "#/components/responses/UnauthorizedResponse"
+        '403':
+          $ref: "#/components/responses/ForbiddenResponse"
+        '404':
+          $ref: "#/components/responses/NotFoundResponse"
+        '500':
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  
+  /settings:
+    post:
+      summary: Create a new setting (Admin only)
+      tags: [Setting]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingRequestData"
+            examples:
+              CreateSettingExample:
+                $ref: "#/components/examples/CreateSettingExample"
+      responses:
+        "201":
+          $ref: "#/components/responses/SettingCreatedResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+
+    get:
+      summary: Get all settings
+      tags: [Setting]
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/SettingsListResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+  /settings/{key}:
+    get:
+      summary: Get a setting by key
+      tags: [Setting]
+      security: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+          description: Key of the setting to retrieve
+      responses:
+        "200":
+          $ref: "#/components/responses/SettingByKeyResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    patch:
+      summary: Update a setting by key (Admin only)
+      tags: [Setting]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+          description: Key of the setting to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingRequestData"
+            examples:
+              UpdateSettingExample:
+                $ref: "#/components/examples/UpdateSettingExample"
+      responses:
+        "200":
+          $ref: "#/components/responses/SettingUpdatedResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntityResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+    delete:
+      summary: Delete a setting by key (Admin only)
+      tags: [Setting]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+          description: Key of the setting to delete
+      responses:
+        "204":
+          description: No content
+        "401":
+          $ref: "#/components/responses/UnauthorizedResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT  
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["success", "error"]
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - status
+        - code
+        - message
+    BaseSuccessResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              type: object
+          required:
+            - data    
+    BaseErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                details:
+                  type: object
+                stack:
+                  type: string
+          required:
+            - error        
+    
+    AuthSignUpRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+        email:
+          type: string
+          format: email
+          maxLength: 100
+        phoneNumber:
+          type: string
+          pattern: '^\+?[1-9]\d{1,15}$'
+          maxLength: 15
+        password:
+          type: string
+          format: password
+          minLength: 6
+          maxLength: 50
+          description: |
+            Password requirements:
+            - 6-50 characters
+            - At least one uppercase letter
+            - At least one lowercase letter
+            - At least one number
+      required:
+        - firstName
+        - lastName
+        - email
+        - phoneNumber
+        - password
+    AuthSignUpResponseData:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+            type: string    
+      required:
+        - firstName
+        - lastName
+        - email
+    AuthSignUpFullResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/AuthSignUpResponseData"
+          required:
+            - data    
+    
+    AuthSignInRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 6
+          maxLength: 50
+          description: |
+            Password requirements:
+            - 6-50 characters
+            - At least one uppercase letter
+            - At least one lowercase letter
+            - At least one number   
+      required:
+        - email
+        - password    
+    AuthSignInResponseData:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            firstName:
+              type: string
+            lastName:
+              type: string
+            email:
+              type: string
+              format: email 
+            phoneNumber:
+              type: string
+            role:
+              type: string
+              enum: [USER, ADMIN]
+          required:
+            - id
+            - firstName
+            - lastName
+            - email
+            - phoneNumber
+            - role
+      required:
+        - accessToken
+        - user    
+    AuthSignInFullResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/AuthSignInResponseData"   
+          required:
+            - data               
+      
+    VerifyEMailRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          format: password
+          minLength: 6
+          maxLength: 6   
+    ResetPasswordRequest:
+     type: object
+     properties:
+      key:
+        type: string
+        description: unique lookup key
+      token:
+        type: string
+        description: Reset password Jwt token from email  
+      password:
+        type: string
+        format: password
+        minLength: 6
+        maxLength: 50
+        description: |
+          Password requirements:
+          - 6-50 characters
+          - At least one uppercase letter
+          - At least one lowercase letter
+          - At least one number 
+     required:
+       - key 
+       - token
+       - password            
+    ForgotPasswordRequest:
+     type: object
+     properties:
+      email:
+        type: string
+        format: email
+     required:
+       - email
+    ForgotPasswordResponseData:
+      type: object
+      properties:
+        email:
+          type: string
+          description: simulated email token
+      required:
+       - email    
+    ForgotPasswordFullResponse:
+     allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/ForgotPasswordResponseData"   
+          required:
+            - data        
+    UnauthorizedResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            error:
+              type: object
+          required:
+            - error    
+    ConflictResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                details:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      type: string
+          required:
+            - error
+    BadRequestResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                details:
+                  type: object
+                  additionalProperties:
+                    oneOf:
+                      - type: string
+                      - type: array
+                        items:
+                          type: string
+          required:
+            - error
+    ValidationErrorItem:
+      type: object
+      description: Describes a single validation error.
+      properties:
+        field:
+          type: string
+          description: The name of the field that failed validation.
+          example: "phoneNumber"
+        message:
+          type: string
+          description: The validation error message for the field.
+          example: "Invalid phone number format (e.g., +251912345678)"
+      required:
+        - field
+        - message    
+    ValidationErrorDetails:
+      type: object
+      description: Container for validation error details.
+      properties:
+        validationError:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationErrorItem"
+          description: A list of validation error details.
+      required:
+        - validationError
+    UnprocessableEntityResponsePayload:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                details:
+                  $ref: "#/components/schemas/ValidationErrorDetails"
+          required:
+            - error
+    ServerErrorDetails:
+      type: object
+      description: Container for server error details.
+      properties:
+        serverError:
+          type: array
+          items:
+            type: string
+          description: List of server error messages or general information.
+          example: ["An unexpected internal error occurred. Please try again later."]
+      required:
+        - serverError
+    InternalServerErrorResponsePayload:
+      allOf:
+        - $ref: "#/components/schemas/BaseErrorResponse"
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                details:
+                  $ref: "#/components/schemas/ServerErrorDetails"
+              
+          required:
+            - error
+    RefreshTokenMissingResponse:
+      description: Refresh token is missing in request cookies.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            missingCookieExample:
+              $ref: "#/components/examples/RefreshTokenMissingExample"
+    InvalidRefreshTokenResponse:
+      description: Refresh token is invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            invalidTokenExample:
+              $ref: "#/components/examples/InvalidRefreshTokenExample"
+    AuthUserResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  example: 10
+                role:
+                  type: string
+                  example: USER
+          required:
+            - data     
+  
+    CryptocurrencyRequestData:
+      type: object
+      properties:
+        name:
+          type: string
+        symbol:
+          type: string
+        coingeckoId:
+          type: string  
+        tokenStandard:
+          type: string
+        depositAddress:
+          type: string
+      required:
+        - name
+        - symbol
+        - coingeckoId
+        - tokenStandard
+        - depositAddress     
+    CryptocurrencyResponseData:
+      allOf:
+        - $ref: '#/components/schemas/CryptocurrencyRequestData'
+        - type: object
+          properties:
+            id:
+              type: integer
+    CryptocurencyFullResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/CryptocurrencyResponseData"   
+          required:
+            - data   
+    CryptocurrencyListResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/CryptocurrencyResponseData"
+          required:
+            - data                 
+    CryptocurrencyListFullResponse:
+      allOf:
+        - $ref: "#/components/schemas/CryptocurrencyListResponse"   
+    MarketData:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: System crypto ID
+        name:
+          type: string
+          description: Name of the cryptocurrency
+        symbol:
+          type: string
+          description: Symbol (e.g., BTC)
+        logoUrl:
+          type: string
+          format: uri
+          description: URL to the logo image
+        price:
+          type: number
+          format: float
+          description: Current USD price
+        source:
+          type: string
+          description: the price data source (coingecko or binance)  
+        change24h:
+          type: number
+          format: float
+          description: 24-hour price change percentage    
+    DepositCreateRequest:
+      type: object
+      properties:
+        userId:
+          type: integer
+        cryptocurrencyId:
+          type: number
+        amount:
+          type: number
+          format: double
+        proofOfDepositUrl:
+          type: string
+        transactionHash:
+          type: string
+      required:
+        - userId
+        - cryptocurrencyId
+        - amount
+        - proofOfDepositUrl
+        - transactionHash
+    DepositResponseData:
+      allOf:
+        - $ref: '#/components/schemas/DepositCreateRequest'
+        - type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            adminNotes: 
+              type: string 
+            createdAt:
+              type: string
+              format: date-time
+          required:
+            - id
+            - createdAt
+    DepositCreateFullResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/DepositResponseData"
+          required: [data]  
+    DepositListResponseData:
+      type: array
+      items:
+        $ref: "#/components/schemas/DepositResponseData"
+    DepositListFullResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/DepositListResponseData"
+          required:
+            - data  
+    Withdrawal:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: integer
+        amount:
+          type: string
+        fee:
+          type: string
+        withdrawalAddress:
+          type: string
+        transactionHash:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, COMPLETED, FAILED]
+        adminNotes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            firstName:
+              type: string
+            lastName:
+              type: string
+            balance:
+              type: string
+            email:
+              type: string
+    WithdrawalsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Withdrawal'
+    CreateWithdrawalInput:
+      type: object
+      required:
+        - withdrawalAddress
+        - amount
+      properties:
+        withdrawalAddress:
+          type: string
+          description: Destination wallet address
+          example: bfhdbfhdfsmgsghkjhagkahgjsagjgsanbfbsjabfha
+        amount:
+          type: number
+          format: float
+          description: Withdrawal amount
+          example: 600  
+    WithdrawalResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Withdrawal'          
+    WithdrawalStatusUpdatePayload:
+        type: object
+        required:
+          - status
+        properties:
+          status:
+            type: string
+            enum: [APPROVED, REJECTED]
+            description: The new status to set for the withdrawal.
+            example: "APPROVED"
+          adminNotes:
+            type: string
+            nullable: true
+            description: Optional internal notes for the admin regarding this action.
+            example: "Checked user ID against sanction list - clear."
+          transactionHash:
+            type: string
+            nullable: true
+            description: Optional blockchain transaction hash, typically provided when approving an on-chain withdrawal.
+            example: "0xabc123..."
+    SimpleUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        balance:
+          type: string
+        email:
+          type: string
+    User:
+      allOf:
+        - $ref: '#/components/schemas/SimpleUser'
+        - type: object
+          properties:
+            emailVerified:
+              type: boolean
+              example: true
+            phoneNumber:
+              type: string
+              example: "+251912345678"
+            role:
+              type: string
+              enum: [USER, ADMIN, SUPERADMIN]
+              example: ADMIN
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        balance:
+          type: float  
+        phoneNumber:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          description: Only admins can update this.
+        demoMode:
+          type: boolean
+          enum: [NEUTRAL, WIN, LOSE]
+          description: Only admins can toggle this for other users.    
+    ChangePasswordRequest:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword:
+          type: string
+          minLength: 6
+        newPassword:
+          type: string
+          minLength: 6
+    TransferResponseData:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        sender:
+          $ref: '#/components/schemas/SimpleUser'
+        recipient:
+          $ref: '#/components/schemas/SimpleUser'    
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+    PaginatedTransferFullResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransferResponseData'
+            meta:
+              type: object
+              properties:
+                pagination:
+                  $ref: '#/components/schemas/PaginationMeta'  
+    CreateTransferInput:
+      type: object
+      required:
+        - recipientIdentifier
+        - amount
+      properties:
+        recipientIdentifier:
+          type: string
+          description: |
+            Recipient identifier must be either a valid email address or a phone number in E.164 format.
+            Examples:
+              - Email: user@pbroker.com
+              - Phone: +12345678900
+          example: user@pbroker.com
+        amount:
+          type: number
+          minimum: 5
+          description: Transfer amount in USD. Must be a positive number, minimum $5.
+          example: 600  
+    TradingPairBaseInput:
+      type: object
+      properties:
+        pairName:
+          type: string
+          example: BTCUSDT
+        baseCurrency:
+          type: string
+          example: ETH
+        quoteCurrency:
+          type: string
+          example: USDT
+        defaultTransactionFeePercentage:
+          type: number
+          format: float
+          example: 0.005
+        isActive:
+          type: boolean
+          example: true
+    UpdateTradingPairWithOptionsInput:
+      allOf:
+        - $ref: '#/components/schemas/TradingPairBaseInput'
+        - type: object
+          properties:
+            tradeOptions:
+              type: array
+              items:
+                type: object
+                required:
+                  - durationSeconds
+                  - profitPercentage
+                  - minAmountQuote
+                  - maxAmountQuote
+                properties:
+                  durationSeconds:
+                    type: integer
+                    example: 60
+                  profitPercentage:
+                    type: number
+                    format: float
+                    example: 0.15
+                  minAmountQuote:
+                    type: number
+                    format: float
+                    example: 50
+                  maxAmountQuote:
+                    type: number
+                    format: float
+                    example: 5000
+    UpdateTradingPairWithoutOptionsInput:
+      $ref: '#/components/schemas/TradingPairBaseInput'          
+    CreateTradingPairRequest:
+      type: object
+      required:
+        - pairName
+        - baseCurrency
+        - quoteCurrency
+        - defaultTransactionFeePercentage
+        - tradeOptions
+      properties:
+        pairName:
+          type: string
+          example: BTCUSDT
+        baseCurrency:
+          type: string
+          example: ETH
+        quoteCurrency:
+          type: string
+          example: USDT  
+        defaultTransactionFeePercentage:
+          type: number
+          format: float
+          example: 0.005
+        tradeOptions:
+          type: array
+          items:
+            type: object
+            required:
+              - durationSeconds
+              - profitPercentage
+              - minAmountQuote
+              - maxAmountQuote
+            properties:
+              durationSeconds:
+                type: integer
+                example: 60
+              profitPercentage:
+                type: number
+                format: float
+                example: 0.15
+              minAmountQuote: 
+                type: number
+                format: float
+                example: 50
+              maxAmountQuote: 
+                type: number
+                format: float
+                example: 5000
+        isActive:
+          type: boolean
+          example: true    
+    TradingPairResponseData:
+      type: object
+      required:
+        - id
+        - pairName
+        - baseCurrency
+        - quoteCurrency
+        - defaultTransactionFeePercentage
+        - tradeOptions
+        - isActive
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          example: 7
+        pairName:
+          type: string
+          example: BNB/USDT
+        baseCurrency:
+          type: string
+          example: ETH
+        quoteCurrency:
+          type: string
+          example: USDT
+        defaultTransactionFeePercentage:
+          type: string
+          example: "0.005"
+        tradeOptions:
+          type: array
+          items:
+            type: object
+            required:
+              - durationSeconds
+              - profitPercentage
+              - minAmountQuote
+              - maxAmountQuote
+            properties:
+              durationSeconds:
+                type: integer
+                example: 60
+              profitPercentage:
+                type: number
+                format: float
+                example: 0.15
+              minAmountQuote: 
+                type: number
+                format: float
+                example: 50
+              maxAmountQuote: 
+                type: number
+                format: float
+                example: 5000
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-06-09T06:37:42.991Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-06-09T06:37:42.991Z"
+    TradingPairFullResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TradingPairResponseData'    
+    TradingPairListFullRespose:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TradingPairResponseData'    
+    
+    TradeOption:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 109
+        tradingPairId:
+          type: integer
+          example: 22
+        durationSeconds:
+          type: integer
+          example: 140
+        profitPercentage:
+          type: number
+          format: float
+          example: 0.75
+        minAmountQuote:
+          type: number
+          format: float
+          example: 50
+        maxAmountQuote:
+          type: number
+          format: float
+          example: 1000
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateTradeOptionInput:
+      type: object
+      required:
+        - tradingPairId
+        - durationSeconds
+        - profitPercentage
+        - minAmountQuote
+        - maxAmountQuote
+      properties:
+        tradingPairId:
+          type: integer
+          example: 22
+        durationSeconds:
+          type: integer
+          example: 120
+        profitPercentage:
+          type: number
+          format: float
+          example: 0.75
+        minAmountQuote:
+          type: number
+          format: float
+          example: 50
+        maxAmountQuote:
+          type: number
+          format: float
+          example: 1000
+    UpdateTradeOptionInput:
+      type: object
+      properties:
+        durationSeconds:
+          type: integer
+          example: 140
+        profitPercentage:
+          type: number
+          format: float
+          example: 0.75
+        minAmountQuote:
+          type: number
+          format: float
+          example: 50
+        maxAmountQuote:
+          type: number
+          format: float
+          example: 1000    
+    TradeOptionResponse:
+          allOf:
+            - $ref: "#/components/schemas/BaseSuccessResponse"
+            - type: object
+              properties:
+                data:
+                  $ref: "#/components/schemas/TradeOption"
+              required:
+               - data
+    TradeOptionListResponse:
+          allOf:
+            - $ref: "#/components/schemas/BaseSuccessResponse"
+            - type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TradeOption"
+              required:
+               - data               
+
+    TradeRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cmbm0ktp10001fer0jkb111g9
+        userId:
+          type: integer
+          example: 1
+        tradingPair:
+          type: string
+          example: ETH/USDT
+        baseCurrency:
+          type: string
+          example: ETH
+        quoteCurrency:
+          type: string
+          example: USDT
+        tradeType:
+          type: string
+          example: BUY
+        tradingAmountQuote:
+          type: number
+          format: float
+          example: 500
+        tradingAmountBase:
+          type: number
+          format: float
+          example: 0.25
+        executionPrice:
+          type: number
+          format: float
+          example: 2000
+        tradeExpirationTimeSeconds:
+          type: integer
+          example: 60
+        potentialProfitPercentage:
+          type: number
+          format: float
+          example: 0.15
+        expectedProfitQuote:
+          type: number
+          format: float
+          example: 75
+        transactionFeePercentage:
+          type: number
+          format: float
+          example: 0.005
+        transactionFeeAmountQuote:
+          type: number
+          format: float
+          example: 2.5
+        tradeStatus:
+          type: string
+          enum: [PENDING, RESOLVED, CANCELLED]
+          example: PENDING
+        winLoseStatus:
+          type: string
+          enum: [NA, WIN, LOSE]
+          example: NA
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/SimpleUser'
+    CreateTradeRequestInput:
+      type: object
+      required:
+        - tradingPairId
+        - tradeOptionId
+        - tradeType
+        - tradingAmountQuote
+        - executionPrice
+      properties:
+        tradingPairId:
+          type: number
+          example: 22
+        tradeOptionId:
+          type: number
+          example: 100  
+        tradeType:
+          type: string
+          example: BUY
+        tradingAmountQuote:
+          type: number
+          format: float
+          example: 500
+        executionPrice:
+          type: number
+          format: float
+          example: 2000
+    UpdateTradeRequestInput:
+      type: object
+      properties:
+        tradeStatus:
+          type: string
+          enum: [PENDING, RESOLVED, CANCELLED]
+        winLoseStatus:
+          type: string
+          enum: [NA, WIN, LOSE]  
+    TradeRequestCreatedResponse:
+          allOf:
+            - $ref: "#/components/schemas/BaseSuccessResponse"
+            - type: object
+              properties:
+                data:
+                  $ref: "#/components/schemas/TradeRequest"
+              required:
+                - data    
+    TradeRequestListResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/TradeRequest"
+          required:
+            - data      
+    TradeRequestFoundResponse:
+          allOf:
+            - $ref: "#/components/schemas/BaseSuccessResponse"
+            - type: object
+              properties:
+                data:
+                  $ref: "#/components/schemas/TradeRequest"
+              required:
+               - data
+    Wallet:
+        type: object
+        properties:
+          id:
+            type: string
+            example: "cmety3p11001hfemgvevjialy"
+          userId:
+            type: integer
+            example: 1
+          type:
+            type: string
+            enum: ["TRADING", "ARBITRAGE"]
+            example: "TRADING"
+          balance:
+            type: string
+            format: decimal
+            example: "21000"
+          locked:
+            type: string
+            format: decimal
+            example: "0"
+          createdAt:
+            type: string
+            format: date-time
+          updatedAt:
+            type: string
+            format: date-time
+    WalletSelfTransferRequest:
+      type: object
+      required:
+        - from
+        - to
+        - amount
+      properties:
+        from:
+          type: string
+          enum: [TRADING, ARBITRAGE]
+          description: The source wallet type.
+        to:
+          type: string
+          enum: [TRADING, ARBITRAGE]
+          description: The target wallet type.
+        amount:
+          type: string
+          pattern: '^\d+(\.\d{1,18})?$'
+          description: Amount to transfer, as a string to support high precision decimals.
+    WalletUpdateBalanceRequest:
+      type: object
+      properties:
+        balance:
+          type: string
+          description: The new balance for the wallet.
+          format: decimal
+          example: "21000"
+      required:
+        - balance          
+    WalletTransferSuccessResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                fromWallet:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "cmety3p11001hfemgvevjialy"
+                    type:
+                      type: string
+                      enum: [TRADING, ARBITRAGE]
+                      example: "TRADING"
+                    balance:
+                      type: string
+                      example: "0"
+                    locked:
+                      type: string
+                      example: "0"
+                  required: [id, type, balance, locked]
+                toWallet:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "cmety3q1b001jfemggz4nt3tr"
+                    type:
+                      type: string
+                      enum: [TRADING, ARBITRAGE]
+                      example: "ARBITRAGE"
+                    balance:
+                      type: string
+                      example: "10448"
+                    locked:
+                      type: string
+                      example: "200"
+                  required: [id, type, balance, locked]
+              required: [fromWallet, toWallet]
+    WalletBalancesResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                trading:
+                  type: object
+                  properties:
+                    balance:
+                      type: string
+                      example: "0"
+                    locked:
+                      type: string
+                      example: "0"
+                    total:
+                      type: string
+                      example: "0"
+                  required: [balance, locked, total]
+                arbitrage:
+                  type: object
+                  properties:
+                    balance:
+                      type: string
+                      example: "10448"
+                    locked:
+                      type: string
+                      example: "200"
+                    total:
+                      type: string
+                      example: "10648"
+                  required: [balance, locked, total]
+                totalOverall:
+                  type: string
+                  example: "10648"
+              required: [trading, arbitrage, totalOverall]  
+  
+    ArbitrageProductBase:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "A3"
+        name:
+          type: string
+          example: "a three"
+        description:
+          type: string
+          example: "a three"
+        durationDays:
+          type: integer
+          example: 3
+        dailyRoiRate:
+          type: number
+          format: decimal
+          example: 0.1
+        minInvestment:
+          type: string
+          example: "200"
+        maxInvestment:
+          type: string
+          example: "700"
+    ArbitrageProductCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ArbitrageProductBase'
+      required:
+        - code
+        - name
+        - description
+        - durationDays
+        - dailyRoiRate
+        - minInvestment
+        - maxInvestment
+    ArbitrageProductUpdateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ArbitrageProductBase'
+        - type: object
+          description: Same as create, but all fields optional + can toggle isActive
+          properties:
+            isActive:
+              type: boolean
+              example: false  
+    ArbitrageProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "cmf12l1990000fel0dreg0wo5"
+        code:
+          type: string
+          example: "A3"
+        name:
+          type: string
+          example: "a three"
+        description:
+          type: string
+          example: "a three"
+        durationDays:
+          type: integer
+          example: 3
+        isActive:
+          type: boolean
+          example: true
+        dailyRoiRate:
+          type: string
+          example: "0.1"
+        minInvestment:
+          type: string
+          example: "200"
+        maxInvestment:
+          type: string
+          example: "700"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-09-01T12:02:31.868Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-09-01T12:02:31.868Z"
+      required:
+        - id
+        - code
+        - name
+        - description
+        - durationDays
+        - isActive
+        - dailyRoiRate
+        - minInvestment
+        - maxInvestment
+        - createdAt
+        - updatedAt
+    ArbitrageProductResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/ArbitrageProduct"
+          required:
+            - data
+    ArbitrageProductsPaginatedResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/ArbitrageProduct"
+            meta:
+              type: object
+              properties:
+                pagination:
+                  type: object
+                  properties:
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+                      nullable: true
+          required:
+            - data
+            - meta
+
+    ArbitrageOrderStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - COMPLETED
+        - CANCELLED
+    ArbitrageOrderBase:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: integer
+        productId:
+          type: string
+        amount:
+          type: string
+        dailyRoiRate:
+          type: string
+        durationDays:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/ArbitrageOrderStatus"
+        earnedInterest:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ArbitrageOrderCreateRequest:
+      type: object
+      required:
+        - productId
+        - amount
+      properties:
+        productId:
+          type: string
+          format: cuid
+          example: "cmevgp4870000fewspae23wky"
+        amount:
+          type: string
+          example: "280"
+    ArbitrageOrderCancelRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: cuid
+          example: "cmeso7i7h0001fe8o2c7x9k9d"
+    ArbitrageOrderResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/ArbitrageOrderBase"
+    PaginatedArbitrageOrderResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/ArbitrageOrderBase"
+            meta:
+              type: object
+              properties:
+                pagination:
+                  type: object
+                  properties:
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+
+    ArbitrageTransactionType:
+      type: string
+      enum:
+        - INTEREST
+        - PRINCIPAL_RETURN
+    ArbitrageTransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - SUCCESS
+        - FAILED
+    ArbitrageTransactionBase:
+      type: object
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        userId:
+          type: integer
+        amount:
+          type: string
+        type:
+          $ref: "#/components/schemas/ArbitrageTransactionType"
+        transactionDate:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/ArbitrageTransactionStatus"
+        createdAt:
+          type: string
+          format: date-time
+    ArbitrageTransactionResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/ArbitrageTransactionBase"
+    PaginatedArbitrageTransactionResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseSuccessResponse"
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/ArbitrageTransactionBase"
+            meta:
+              type: object
+              properties:
+                pagination:
+                  type: object
+                  properties:
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+
+    Setting:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        key:
+          type: string
+          example: withdrawal_setting
+        value:
+          type: object
+          example:
+            min: "200.00"
+            max: "50000.00"
+            fee: "0.01"
+        description:
+          type: string
+          example: All settings related to user withdrawals.
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-09-05T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-09-05T12:00:00Z"
+    SettingCreate:
+      type: object
+      required:
+        - key
+        - value
+        - description
+      properties:
+        key:
+          type: string
+        value:
+          type: object
+        description:
+          type: string
+    SettingUpdate:
+      type: object
+      properties:
+        value:
+          type: object
+        description:
+          type: string
+  
+  # ========================
+  # Examples
+  # ========================
+  examples:
+    AuthSignInRequestExample:
+      summary: Example of a successful sign-in response
+      value:
+        email: johndoe@example.com
+        password: Johndoe@pas    
+    AuthSignInResponseExample:
+      summary: Example of a successful sign-in response
+      value:
+        status: "success"
+        code: "SIGNEDIN"
+        message: "User signed in successfully"
+        data:
+          accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          user:
+            code: 123456 
+            id: 10
+            firstName: "john"
+            lastName: "doe"
+            email: "johndoe@example.com"
+            phoneNumber: "+25109999999"
+            role: "USER"    
+    AuthSignUpRequestExample:
+      summary: Example of a successful sign-in response
+      value:
+        firstName: john
+        lastName: doe
+        phoneNumber: +234567890
+        email: johndoe@example.com
+        password: Johndoe@pas  
+    AuthSignUpResponseExample:
+          summary: Email Verification Sent
+          value:
+            status: "success"
+            code: "OTP_CODE_SENT"
+            message: "Verification code sent. Please check your email."
+            data:
+              firstName: "John"
+              lastName: "Doe"
+              email: "johndoe@example.com"         
+    ResetPasswordRequestExample:
+      summary: valid restet password request
+      value:
+        key: gjgdjhgfgfjhfgh
+        token: 13fkfkhghoirgoiregoirgog
+        password: 123@Dabcd    
+    ResetPasswordRespnseExample:
+      summary: Successful password reset
+      value:
+        status: "success"
+        code: "PASSWORD_RESET"
+        message: "Password reseted successfully"
+    ForgotPasswordRequestExample:
+     summary: Valid Forgot Password Request
+     value:
+        email: "johndoe@gmail.com"
+    ForgotPasswordResponseExample:
+     summary: Successful password reset
+     value:
+        status: "success"
+        code: "TOKEN_SENT_TO_EMAIL"
+        message: "Password reset link has sent to eamil. check your email"    
+        data: 
+         email: abcdefgh
+    UnauthorizedErrorExample:
+      summary: Unauthorized - Invalid credentials
+      value:
+        status: "error"
+        code: "UNAUTHORIZED"
+        message: "Invalid credentials"
+        error: {}    
+    ConflictErrorExample:
+      summary: Email already exists
+      value:
+        status: "error"
+        code: "CONFLICT"
+        message: "Request Conflict"
+        error:
+          details:
+            conflictError:
+              - "Email already exists"
+    BadRequestErrorExample:
+      summary: Invalid JSON format
+      value:
+        status: "error"
+        code: "BAD_REQUEST"
+        message: "Invalid JSON in request body."
+        error:
+          details:
+            parsingError: "Expected ',' or '}' after property value in JSON at position 126 (line 6 column 5)"
+    UnverifiedEmailErrorExample:
+      summary: Email Unverified
+      value:
+        status: "error"
+        code: "UnverifiedEmailError"
+        message: "Email is not verified"
+        error:
+          details:
+            email: "someone@example.com"  
+
+    OtpExpiredOrMovedErrorExample:
+      summary: OTP expired or moved
+      value:
+        status: "error"
+        code: "VERIFICATION_CODE_EXPIRED"
+        message: "Verification code expired or not found"
+        error: {}
+
+    ValidationErrorExample:
+      summary: Validation failed for request payload
+      value:
+        status: "error"
+        code: "VALIDATION_ERROR"
+        message: "Validation failed"
+        error:
+          details:
+            validationError:
+              - field: "email"
+                message: "Email is required and must be a valid email address."
+    InternalServerErrorExample:
+      summary: Unexpected server error
+      value:
+        status: "error"
+        code: "INTERNAL_SERVER_ERROR"
+        message: "An unexpected error occurred on the server."
+        error:
+          details:
+            serverError:
+              - "The server encountered an unexpected condition that prevented it from fulfilling the request."
+    AuthRefreshTokenResponseExample:
+      summary: Access token refreshed successfully
+      value:
+        status: "success"
+        code: "TOKEN_REFRESHED"
+        message: "Access token refreshed successfully"
+        data:
+          accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          user:
+            id: 12345
+            firstName: "John"
+            lastName: "Doe"
+            email: "john.doe@example.com"
+            phoneNumber: "+251912345678"
+            role: "USER"    
+    RefreshTokenMissingExample:
+      summary: Refresh token missing in cookie
+      value:
+        status: "error"
+        code: "MISSING_REFRESH_TOKEN"
+        message: "Refresh token is missing"
+        error: {}
+    InvalidRefreshTokenExample:
+      summary: Invalid or expired refresh token
+      value:
+        status: "error"
+        code: "FORBIDDEN"
+        message: "Invalid or expired refresh token"
+        error: {}
+    UserNotFoundExample:
+      summary: No user found for the provided Input
+      value:
+        status: "error"
+        code: "NOT_FOUND"
+        message: "User not found"
+        error: {}    
+      examples:
+    AuthResetPasswordRequestExample:
+      summary: Valid reset password request
+      value:
+        token: abc123token
+        password: NewStr0ngP@ssword
+    EmailVerificationRequestExample:
+      summary: Valid Email Verification Request
+      value:
+        email: johndoe@example.com
+        code: 123456
+    EmailVerificationResponseExample:
+      summary: Successful Email Verification Response
+      value:
+        status: success
+        code: 123456
+        message: Email Verified Successfully
+    AuthAuthenticatedResponseExample:
+      summary: Authenticated user example
+      value:
+        status: "success"
+        code: "AUTHENTICATED"
+        message: "User authenticated successfully"
+        data:
+          userId: 10
+          role: USER
+    AuthAuthorizedResponseExample:
+      summary: Authorized admin user example
+      value:
+        status: "success"
+        code: "AUTHORIZED"
+        message: "User authorized successfully"
+        data:
+          userId: 10
+          role: ADMIN
+    CreateCryptocurencyRequestExample:
+      summary: Example of a successful sign-in response
+      value:
+        name: Bitcoin
+        symbol: "BTC"
+        coingeckoId: bitcoin
+        tokenStandard: "Native"
+        depositAddress: "jhagfjhgfjsf17183687383dgjdhd"
+    CreateCryptocurencyResponseExample:
+      summary: Example of a successful crypto creation
+      value:
+        status: "success"
+        code: "CRYPTO_ADDED"
+        message: "crypto added successfully"
+        data:
+          id: 12345
+          name: Bitcoin
+          symbol: "BTC"
+          coingeckoId: bitcoin
+          tokenStandard: "Native"
+          depositAddress: "jhagfjhgfjsf17183687383dgjdhd"  
+    DepositCreateRequestExample:
+      summary: Example deposit request
+      value:
+        userId: 1
+        cryptocurrencyId: 101
+        amount: 500.0
+        proofOfDepositUrl: "https://example.com/proof.jpg"
+        transactionHash: "0xabc123def456ghi789"
+    DepositCreateResponseExample:
+      summary: Example deposit creation response
+      value:
+        status: "success"
+        code: "DEPOSIT_CREATED"
+        message: "Deposit created successfully"
+        data:
+          id: "dep_001"
+          userId: 1
+          cryptocurrencyId: 101
+          amount: 500.0
+          proofOfDepositUrl: "https://example.com/proof.jpg"
+          transactionHash: "0xabc123def456ghi789"
+          status: "pending"
+          createdAt: "2025-06-03T12:34:56Z"
+    DepositListResponseExample:
+      summary: Example of a successful deposit list response
+      value:
+        status: "success"
+        code: "DEPOSIT_LIST_FETCHED"
+        message: "Deposits retrieved successfully"
+        data:
+          - id: "dep_001"
+            userId: 1
+            cryptocurrencyId: 101
+            amount: 500.0
+            proofOfDepositUrl: "https://example.com/proof1.jpg"
+            transactionHash: "0xabc123def456ghi789"
+            status: "pending"
+            createdAt: "2025-06-03T12:34:56Z"
+          - id: "dep_002"
+            userId: 2
+            cryptocurrencyId: 102
+            amount: 1000.0
+            proofOfDepositUrl: "https://example.com/proof2.jpg"
+            transactionHash: "0xdef456ghi789jkl012"
+            status: "approved"
+            createdAt: "2025-06-01T10:20:30Z"
+    DepositResponseExample:
+      summary: Example of a successful deposit response
+      value:
+        status: "success"
+        code: "DEPOSIT_FETCHED"
+        message: "Deposits retrieved successfully"
+        data:
+          id: "dep_001"
+          userId: 1
+          cryptocurrencyId: 101
+          amount: 500.0
+          proofOfDepositUrl: "https://example.com/proof1.jpg"
+          transactionHash: "0xabc123def456ghi789"
+          status: "pending"
+          createdAt: "2025-06-03T12:34:56Z"
+    DepositUpdateResponseExample:
+      summary: Example of a successful deposit Update response
+      value:
+        status: "success"
+        code: "DEPOSIT_UPDATED"
+        message: "Deposits updated successfully"
+        data:
+          - id: "dep_001"
+            userId: 1
+            cryptocurrencyId: 101
+            amount: 500.0
+            proofOfDepositUrl: "https://example.com/proof1.jpg"
+            transactionHash: "0xabc123def456ghi789"
+            status: "approved"
+            adminNotes: deposit approved successfully
+            createdAt: "2025-06-03T12:34:56Z"            
+    WithdrawalsListExample:
+      summary: Successful withdrawals list
+      value:
+        status: success
+        code: SUCCESS
+        message: Request successful
+        data:
+          - id: cmbhqshm20001fefgx5imv8oj
+            userId: 1
+            amount: "200"
+            fee: "0.1"
+            withdrawalAddress: bfhdbfhdfsmgsghkjhagkahgjsagjgsanbfbsjabfha
+            transactionHash: null
+            status: PENDING
+            adminNotes: null
+            createdAt: "2025-06-04T09:25:39.995Z"
+            updatedAt: "2025-06-04T09:25:39.995Z"
+            user:
+              id: 1
+              firstName: pbroker
+              lastName: admin
+              balance: "1541.92"
+              email: admin@pbroker.com
+          - id: cmbhtlh1s0002fe9sxayh74mn
+            userId: 1
+            amount: "1000"
+            fee: "0.1"
+            withdrawalAddress: bfhdbfhdfsmgsghkjhagkahgjsagjgsanbfbsjabfha
+            transactionHash: null
+            status: PENDING
+            adminNotes: null
+            createdAt: "2025-06-04T10:44:11.536Z"
+            updatedAt: "2025-06-04T10:44:11.536Z"
+            user:
+              id: 1
+              firstName: pbroker
+              lastName: admin
+              balance: "1541.92"
+              email: admin@pbroker.com          
+    WithdrawalSuccessExample:
+      summary: A single withdrawal record
+      value:
+        status: success
+        code: SUCCESS
+        message: Request successful
+        data:
+          id: cmbhtlh1s0002fe9sxayh74mn
+          userId: 1
+          amount: "1000"
+          fee: "0.1"
+          withdrawalAddress: bfhdbfhdfsmgsghkjhagkahgjsagjgsanbfbsjabfha
+          transactionHash: null
+          status: PENDING
+          adminNotes: null
+          createdAt: "2025-06-04T10:44:11.536Z"
+          updatedAt: "2025-06-04T10:44:11.536Z"
+          user:
+            id: 1
+            firstName: pbroker
+            lastName: admin
+            balance: "1541.92"
+            email: admin@pbroker.com
+    CreateWithdrawalSuccessExample:
+      summary: Successfully created withdrawal request
+      value:
+        status: success
+        code: SUCCESS
+        message: Request successful
+        data:
+          id: cmbhtlh1s0002fe9sxayh74mn
+          userId: 1
+          amount: "600"
+          fee: "0.1"
+          withdrawalAddress: bfhdbfhdfsmgsghkjhagkahgjsagjgsanbfbsjabfha
+          transactionHash: null
+          status: PENDING
+          adminNotes: null
+          createdAt: "2025-06-04T10:44:11.536Z"
+          updatedAt: "2025-06-04T10:44:11.536Z"
+          user:
+            id: 1
+            firstName: pbroker
+            lastName: admin
+            balance: "941.92"
+            email: admin@pbroker.com    
+    
+    TradeRequestExample:
+      summary: Trade Request
+      value:
+        status: success
+        code: CREATED
+        message: Trade request created successfully
+        data:
+          id: cmbm0ktp10001fer0jkb111g9
+          userId: 1
+          tradingPair: ETH/USDT
+          baseCurrency: ETH
+          quoteCurrency: USDT
+          tradeType: BUY
+          tradingAmountQuote: 500
+          tradingAmountBase: 0.25
+          executionPrice: 2000
+          tradeExpirationTimeSeconds: 60
+          potentialProfitPercentage: 0.15
+          expectedProfitQuote: 75
+          transactionFeePercentage: 0.005
+          transactionFeeAmountQuote: 2.5
+          tradeStatus: PENDING
+          winLoseStatus: NA
+          createdAt: 2025-06-07T12:00:00Z
+          updatedAt: 2025-06-07T12:00:00Z
+          user:
+            id: 1
+            firstName: Alice
+            lastName: Doe
+            email: alice@example.com
+            balance: 10000                 
+    TradeRequestListExample:
+      summary: Trade Request List 
+      value:
+        status: success
+        code: FETCHED
+        message: Trade requests fetched successfully
+        data:
+          - id: cmbm0ktp10001fer0jkb111g9
+            userId: 1
+            tradingPair: ETH/USDT
+            baseCurrency: ETH
+            quoteCurrency: USDT
+            tradeType: BUY
+            tradingAmountQuote: 500
+            tradingAmountBase: 0.25
+            executionPrice: 2000
+            tradeExpirationTimeSeconds: 60
+            potentialProfitPercentage: 0.15
+            expectedProfitQuote: 75
+            transactionFeePercentage: 0.005
+            transactionFeeAmountQuote: 2.5
+            tradeStatus: PENDING
+            winLoseStatus: NA
+            createdAt: 2025-06-07T12:00:00Z
+            updatedAt: 2025-06-07T12:00:00Z
+            user:
+              id: 1
+              firstName: Alice
+              lastName: Doe
+              email: alice@example.com
+              balance: 10000
+    
+    UserSuccessExample:
+      value:
+        status: success
+        code: USER_RETRIEVED
+        message: User retrieved successfully
+        data:
+          id: 1
+          email: admin@pbroker.com
+          emailVerified: true
+          phoneNumber: "+251912345678"
+          firstName: pbroker
+          lastName: Doe
+          balance: "39.12"
+          role: ADMIN
+    UserListSuccessExample:
+      value:
+        status: success
+        code: USER_LIST_RETRIEVED
+        message: All users retrieved successfully
+        data:
+          - id: 1
+            email: admin@pbroker.com
+            emailVerified: true
+            phoneNumber: "+251912345678"
+            firstName: pbroker
+            lastName: Doe
+            balance: "39.12"
+            role: ADMIN
+    UserCountSuccessExample:
+      value:
+        status: success
+        code: USER_COUNT_RETRIEVED
+        message: Total user count retrieved successfully
+        data:
+          count: 42
+    UserUpdateSuccessExample:
+      value:
+        status: success
+        code: USER_UPDATED
+        message: User updated successfully
+        data:
+          id: 1
+          email: admin@pbroker.com
+          emailVerified: true
+          phoneNumber: "+251912345678"
+          firstName: John
+          lastName: Updated
+          balance: "100.00"
+          role: ADMIN
+    UserPromotedSuccessExample:
+      value:
+        status: success
+        code: USER_PROMOTED
+        message: User promoted to admin successfully
+        data:
+          id: 1
+          email: admin@pbroker.com
+          emailVerified: true
+          phoneNumber: "+251912345678"
+          firstName: pbroker
+          lastName: Doe
+          balance: "39.12"
+          role: ADMIN
+    PasswordChangeSuccessExample:
+      value:
+        status: success
+        code: PASSWORD_CHANGED
+        message: Password changed successfully
+        data:
+          id: 1
+          email: admin@pbroker.com
+          emailVerified: true
+          phoneNumber: "+251912345678"
+          firstName: pbroker
+          lastName: Doe
+          balance: "39.12"
+          role: ADMIN
+    ArbitrageProductsPaginatedExample:
+      summary: Example paginated arbitrage products response
+      value:
+        status: "success"
+        code: "PAGINATED_RESULT"
+        message: "Paginated data fetched successfully"
+        data:
+          - id: "cmf12l1990000fel0dreg0wo5"
+            code: "A3"
+            name: "a three"
+            description: "a three"
+            durationDays: 3
+            isActive: true
+            dailyRoiRate: "0.1"
+            minInvestment: "200"
+            maxInvestment: "700"
+            createdAt: "2025-09-01T12:02:31.868Z"
+            updatedAt: "2025-09-01T12:02:31.868Z"
+          - id: "cmevgp4870000fewspae23wky"
+            code: "A2"
+            name: "a two"
+            description: "a two"
+            durationDays: 6
+            isActive: true
+            dailyRoiRate: "0.1"
+            minInvestment: "200"
+            maxInvestment: "700"
+            createdAt: "2025-08-28T13:51:00.007Z"
+            updatedAt: "2025-08-28T13:51:00.007Z"
+          - id: "cmetw6tvl0000ferwqul50iy8"
+            code: "A1"
+            name: "a one"
+            description: "product"
+            durationDays: 6
+            isActive: true
+            dailyRoiRate: "0.1"
+            minInvestment: "500000"
+            maxInvestment: "1000000"
+            createdAt: "2025-08-27T11:29:08.210Z"
+            updatedAt: "2025-09-01T12:26:04.946Z"
+        meta:
+          pagination:
+            total: 3
+            totalPages: 1
+
+    # wallet
+    TradingToArbitrage:
+      summary: Trading → Arbitrage
+      value:
+        from: TRADING
+        to: ARBITRAGE
+        amount: "10050"
+    ArbitrageToTrading:
+      summary: Arbitrage → Trading
+      value:
+        from: ARBITRAGE
+        to: TRADING
+        amount: "500"
+    WalletDetails:
+      type: object
+      properties:
+        balance:
+          type: string
+          example: "10448"
+        locked:
+          type: string
+          example: "200"
+        total:
+          type: string
+          example: "10648"   
+    WalletBalancesExample:
+      summary: Example balances response
+      value:
+        status: "success"
+        code: "SUCCESS"
+        message: "Request successful"
+        data:
+          trading:
+            balance: "0"
+            locked: "0"
+            total: "0"
+          arbitrage:
+            balance: "10448"
+            locked: "200"
+            total: "10648"
+          totalOverall: "10648"    
+
+    CreateArbitrageProductRequest:
+      summary: Example create product request
+      value:
+        code: "A3"
+        name: "a three"
+        description: "a three"
+        durationDays: 3
+        dailyRoiRate: 0.1
+        minInvestment: "200"
+        maxInvestment: "700"
+    UpdateArbitrageProductRequest:
+      summary: Example update product request
+      value:
+        minInvestment: 500000
+        maxInvestment: 1000000
+    
+    ArbitrageProductResponseExample:
+      summary: Example create product response
+      value:
+        status: "success"
+        code: "CREATED"
+        message: "Resource created successfully"
+        data:
+          id: "cmf12l1990000fel0dreg0wo5"
+          code: "A3"
+          name: "a three"
+          description: "a three"
+          durationDays: 3
+          isActive: true
+          dailyRoiRate: "0.1"
+          minInvestment: "200"
+          maxInvestment: "700"
+          createdAt: "2025-09-01T12:02:31.868Z"
+          updatedAt: "2025-09-01T12:02:31.868Z"
+    ArbitrageProductUpdatedResponseExample:
+      summary: Example updated product response
+      value:
+        status: "success"
+        code: "UPDATED"
+        message: "Request updated successfully"
+        data:
+          id: "cmetw6tvl0000ferwqul50iy8"
+          code: "A1"
+          name: "a one"
+          description: "product"
+          durationDays: 6
+          isActive: true
+          dailyRoiRate: "0.1"
+          minInvestment: "500000"
+          maxInvestment: "1000000"
+          createdAt: "2025-08-27T11:29:08.210Z"
+          updatedAt: "2025-09-01T12:26:04.946Z"
+    
+    CreateSettingExample:
+      summary: Example of creating a setting
+      value:
+        key: withdrawal_setting
+        value:
+          min: "200.00"
+          max: "50000.00"
+          fee: "0.01"
+        description: All settings related to user withdrawals
+    UpdateSettingExample:
+      summary: Example of updating a nested field
+      value:
+        value:
+          fee: "0.02"
+    # ========================
+    # RESPONSES
+    # ========================
+
+
+  responses:
+      
+    AuthSignUpResponse:
+      description: User successfully created
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthSignUpFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/AuthSignUpResponseExample"
+    AuthSignInResponse:
+      description: User signed in successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthSignInFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/AuthSignInResponseExample"
+    ResetPasswordResponse:
+      description: Password reset successful
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+          examples:
+            success:
+              $ref: '#/components/examples/ResetPasswordRespnseExample'
+    AuthRefreshTokenResponse:
+      description: Access token refreshed successfully.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseResponse"
+              - type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AuthSignInResponseData"
+          examples:
+            successExample:
+              $ref: "#/components/examples/AuthRefreshTokenResponseExample"   
+    EmailVerificationResponse:
+      description: Email verified successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/EmailVerificationResponseExample"
+    ForgotPasswordResponse:
+      description: Password reset link sent to email.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ForgotPasswordFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/ForgotPasswordResponseExample"
+    UnauthorizedResponse:
+      description: Unauthorized — Invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthorizedResponse"
+          examples:
+            default:
+              $ref: "#/components/examples/UnauthorizedErrorExample"        
+    BadRequestResponse:
+      description: Malformed JSON or invalid request payload
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BadRequestResponse"
+          examples:
+            default:
+              $ref: "#/components/examples/BadRequestErrorExample"
+    ConflictResponse:
+      description: Conflict — duplicate resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ConflictResponse"
+          examples:
+            default:
+              $ref: "#/components/examples/ConflictErrorExample"
+    UnprocessableEntityResponse:
+      description: Unprocessable Entity — The request was well-formed but was unable to be followed due to semantic errors (e.g., validation errors).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnprocessableEntityResponsePayload"
+          examples:
+            default:
+              $ref: "#/components/examples/ValidationErrorExample"  
+    InternalServerErrorResponse:
+      description: Internal Server Error — The server encountered an unexpected condition.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InternalServerErrorResponsePayload"
+          examples:
+            default:
+              $ref: "#/components/examples/InternalServerErrorExample"   
+    RefreshTokenMissingResponse:
+      description: Refresh token is missing in request cookies.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            missingCookieExample:
+              $ref: "#/components/examples/RefreshTokenMissingExample"   
+    InvalidRefreshTokenResponse:
+      description: Refresh token is invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            invalidTokenExample:
+              $ref: "#/components/examples/InvalidRefreshTokenExample"    
+    UserNotFoundResponse:
+      description: No user was found for the given Input.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            userNotFoundExample:
+              $ref: "#/components/examples/UserNotFoundExample" 
+    UnverifiedEmailError:
+      description: user email is not verified yet.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            emailErrorExample:
+              $ref: "#/components/examples/UnverifiedEmailErrorExample" 
+    OtpExpiredOrMovedError:
+      description: otp expired or moved.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          examples:
+            OtpExpiredOrMovedErrorExample:
+              $ref: "#/components/examples/OtpExpiredOrMovedErrorExample"               
+    NotFoundResponse:
+      description: No Record was found for the given Input.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"     
+          examples:
+            notFoundExample:
+              summary: Example - Record not found
+              value:
+                status: "error"
+                code: "NOT_FOUND"
+                message: "Requested Record not found"
+                error: {}            
+    AuthAuthenticatedResponse:
+      description: User authenticated successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthUserResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/AuthAuthenticatedResponseExample"
+    AuthAuthorizedResponse:
+      description: User authorized successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthUserResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/AuthAuthorizedResponseExample"
+    ForbiddenResponse:
+      description: User is not authorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+          examples:
+            errorExample:
+              value:
+                status: "error"
+                code: "FORBIDDEN"
+                message: "You do not have permission to access this resource"
+    CreateCryptoCurrencyResponse:
+      description: crypto added successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CryptocurencyFullResponse"
+          examples:
+            success:
+              $ref: '#/components/examples/CreateCryptocurencyResponseExample'   
+    CryptoCurrencyListResponse:                    
+      description: cryptocurrencies fetched successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CryptocurrencyListFullResponse"   
+    ExternalServerError:
+      description: External server (CoinGecko) error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseErrorResponse"
+          example:
+            status: error
+            code: ERROR_HAPPEND
+            message: Failed to fetch data from external provider (CoinGecko)         
+    DepositCreateResponse:
+      description: Successfully created a deposit
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DepositCreateFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/DepositCreateResponseExample"
+    DepositListResponse:
+      description: List of deposits successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DepositListFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/DepositListResponseExample"    
+    DepositGetResponse:   
+      description: Deposit fetched successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DepositCreateFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/DepositResponseExample"    
+    DepositUpdateResponse:
+      description: Deposit updated successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DepositCreateFullResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/DepositUpdateResponseExample"  
+    WithdrawalsListResponse:
+      description: List of all withdrawal requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/WithdrawalsResponse"
+          examples:
+            default:
+              $ref: "#/components/examples/WithdrawalsListExample"
+    UserWithdrawalsListResponse:
+      description: Successful response with user-specific withdrawals
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WithdrawalsResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/WithdrawalsListExample'   
+    WithdrawalByIdSuccessResponse:
+      description: Single withdrawal record
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WithdrawalResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/WithdrawalSuccessExample' 
+    CreateWithdrawalSuccessResponse:
+      description: Withdrawal created successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WithdrawalResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/CreateWithdrawalSuccessExample'  
+    PaginatedTransferResponse:
+      description: A paginated list of transfers
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaginatedTransferFullResponse'    
+    BasicTransferGetResponse:
+          description: Transfer found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TransferResponseData'                       
+    CreateTradingPairResponse201:
+      description: Pair created successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TradingPairFullResponse'
+          example:
+            status: success
+            code: CREATED
+            message: Resource created successfully
+            data:
+              id: 7
+              pairName: BNBUSDT
+              baseCurrency: BNB
+              quoteCurrency: USDT
+              defaultTransactionFeePercentage: "0.005"
+              tradeOptions:
+                - durationSeconds: 30
+                  profitPercentage: 0.12
+                  minAmountQuote: 0.2
+                  maxAmountQuote: 20
+                - durationSeconds: 60
+                  profitPercentage: 0.15
+                  minAmountQuote: 0.3
+                  maxAmountQuote: 30
+              isActive: true
+              createdAt: "2025-06-09T06:37:42.991Z"
+              updatedAt: "2025-06-09T06:37:42.991Z"
+    GetTradingPairResponseList200:
+      description: List of trading pairs fetched successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TradingPairListFullRespose'
+          example:
+            status: success
+            code: OK
+            message: Trading pairs retrieved successfully
+            data:
+              - id: 7
+                pairName: BNBUSDT
+                baseCurrency: BNB
+                quoteCurrency: USDT
+                defaultTransactionFeePercentage: "0.005"
+                tradeOptions:
+                  - durationSeconds: 30
+                    profitPercentage: 0.12
+                    minAmountQuote: 0.2
+                    maxAmountQuote: 20
+                  - durationSeconds: 60
+                    profitPercentage: 0.15
+                    minAmountQuote: 0.5
+                    maxAmountQuote: 25
+                isActive: true
+                createdAt: "2025-06-09T06:37:42.991Z"
+                updatedAt: "2025-06-09T06:37:42.991Z"
+              - id: 8
+                pairName: BTCUSDT
+                baseCurrency: BTC
+                quoteCurrency: USDT
+                defaultTransactionFeePercentage: "0.007"
+                tradeOptions:
+                  - durationSeconds: 30
+                    profitPercentage: 0.12
+                    minAmountQuote: 0.2
+                    maxAmountQuote: 20
+                  - durationSeconds: 60
+                    profitPercentage: 0.15
+                    minAmountQuote: 0.5
+                    maxAmountQuote: 25
+                isActive: true
+                createdAt: "2025-06-08T05:22:11.123Z"
+                updatedAt: "2025-06-08T05:22:11.123Z"
+    GetTradingPairByIdResponse200:
+      description: Trading pair fetched successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TradingPairFullResponse'
+          example:
+            status: success
+            code: OK
+            message: Trading pair fetched successfully
+            data:
+              id: 7
+              pairName: ETHUSDT
+              baseCurrency: ETH
+              quoteCurrency: USDT
+              defaultTransactionFeePercentage: "0.005"
+              expirationOptions:
+                - durationSeconds: 30
+                  profitPercentage: 0.12
+                  minAmountQuote: 0.2
+                  maxAmountQuote: 20
+                - durationSeconds: 60
+                  profitPercentage: 0.15
+                  minAmountQuote: 0.5
+                  maxAmountQuote: 25
+              isActive: true
+              createdAt: "2025-06-09T06:37:42.991Z"
+              updatedAt: "2025-06-09T06:37:42.991Z"
+    UpdateTradingPairResponse200:
+      description: Trading pair updated successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TradingPairFullResponse'
+          example:
+            status: success
+            code: UPDATED
+            message: Request updated successfully
+            data:
+              id: 7
+              pairName: ETHUSDT
+              baseCurrency: ETH
+              quoteCurrency: USDT
+              defaultTransactionFeePercentage: "0.005"
+              expirationOptions:
+                - durationSeconds: 30
+                  profitPercentage: 0.12
+                  minAmountQuote: 0.2
+                  maxAmountQuote: 20
+                - durationSeconds: 60
+                  profitPercentage: 0.15
+                  minAmountQuote: 0.5
+                  maxAmountQuote: 25
+              isActive: true
+              createdAt: "2025-06-09T06:37:42.991Z"
+              updatedAt: "2025-06-09T06:37:42.991Z"
+    TradeRequestCreatedResponse:
+      description: Trade request successfully created.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TradeRequestCreatedResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/TradeRequestExample"  
+    TradeRequestListResponse:
+      description: List of trade requests successfully fetched.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TradeRequestListResponse"
+          examples:
+            successExample:
+              $ref: "#/components/examples/TradeRequestListExample"  
+    TradeRequestFoundResponse:
+      description: Trade request fetched successfully by ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TradeRequestFoundResponse"   
+          examples: 
+            default:
+              $ref: "#/components/examples/TradeRequestExample"   
+    TradeUpdatedResponse:
+      description: Updated trade request
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseSuccessResponse"
+              - type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TradeRequest"  
+    UserSuccess:
+      description: User retrieved successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+          examples:
+            default:
+              $ref: '#/components/examples/UserSuccessExample'
+    UserListSuccess:
+      description: All users retrieved successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+          examples:
+            default:
+              $ref: '#/components/examples/UserListSuccessExample'
+    UserCountSuccess:
+      description: Total user count retrieved successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+          examples:
+            default:
+              $ref: '#/components/examples/UserCountSuccessExample'
+    UserUpdateSuccess:
+      description: User updated successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+          examples:
+            default:
+              $ref: '#/components/examples/UserUpdateSuccessExample'
+    UserPromotedSuccess:
+      description: User promoted to admin successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+          examples:
+            default:
+              $ref: '#/components/examples/UserPromotedSuccessExample'
+    PasswordChangeSuccess:
+      description: Password changed successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseResponse'
+              - type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+          examples:
+            default:
+              $ref: '#/components/examples/PasswordChangeSuccessExample'                                                  
+    WalletBalancesSuccessResponse:
+      description: Wallet balances retrieved successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/WalletBalancesResponse"
+          examples:
+            success:
+              $ref: "#/components/examples/WalletBalancesExample"    
+    SelfTransferSuccessResponse:
+      description: Self transfer completed successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/WalletTransferSuccessResponse"
+          examples:
+            transferExample:
+              summary: Example - Trading → Arbitrage
+              value:
+                status: "success"
+                code: "SUCCESS"
+                message: "Request successful"
+                data:
+                  fromWallet:
+                    id: "cmety3p11001hfemgvevjialy"
+                    type: "TRADING"
+                    balance: "1000"
+                    locked: "0"
+                  toWallet:
+                    id: "cmety3q1b001jfemggz4nt3tr"
+                    type: "ARBITRAGE"
+                    balance: "10448"
+                    locked: "200"
+    UpdateWalletBalanceSuccessResponse:
+          description: Wallet balance updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  code:
+                    type: string
+                    example: "SUCCESS"
+                  message:
+                    type: string
+                    example: "Request successful"
+                  data:
+                    $ref: '#/components/schemas/Wallet'
+              examples:
+                example:
+                  value:
+                    status: "success"
+                    code: "SUCCESS"
+                    message: "Request successful"
+                    data:
+                      id: "cmety3p11001hfemgvevjialy"
+                      userId: 1
+                      type: "TRADING"
+                      balance: "21000"
+                      locked: "0"
+                      createdAt: "2025-08-27T12:22:41.269Z"
+                      updatedAt: "2025-09-03T09:45:18.874Z"
+
+    ArbitrageProductSuccess:
+      description: Arbitrage product retrieved successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ArbitrageProductResponse"
+          examples:
+            product:
+              $ref: "#/components/examples/ArbitrageProductResponseExample"
+    ArbitrageProductCreated:
+      description: Arbitrage product created successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ArbitrageProductResponse"
+          examples:
+            product:
+              $ref: "#/components/examples/ArbitrageProductResponseExample"
+    ArbitrageProductUpdated:
+      description: Arbitrage product updated successfully
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ArbitrageProductResponse"
+          examples:
+            updated:
+              $ref: "#/components/examples/ArbitrageProductUpdatedResponseExample" 
+    ArbitrageProductsPaginated:
+      description: Paginated list of arbitrage products
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ArbitrageProductsPaginatedResponse"
+          examples:
+            paginated:
+              $ref: "#/components/examples/ArbitrageProductsPaginatedExample"  
+    SettingCreatedResponse:
+      description: Successfully created setting
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseSuccessResponse"
+              - type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Setting"
+    SettingsListResponse:
+      description: List of all settings
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseSuccessResponse"
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Setting"
+    SettingByKeyResponse:
+      description: Single setting retrieved successfully
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseSuccessResponse"
+              - type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Setting"
+    SettingUpdatedResponse:
+      description: Updated setting
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/BaseSuccessResponse"
+              - type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Setting"    
